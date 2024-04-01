@@ -5,7 +5,11 @@
 
 Manages a web server application. Loads configuration and all views, starting
 up an appropriately configured CherryPy instance. Views are loaded dynamically
-and can be turned on/off via configuration file."""
+and can be turned on/off via configuration file.
+
+If LOG-FILE does not contain `rotatelogs` and does not contain a date in
+%Y%m%d format, a date will be added before the file extension.
+"""
 
 from __future__ import print_function
 from builtins import object
@@ -35,19 +39,19 @@ from cherrypy import Application
 from cherrypy._cplogging import LogManager
 from cherrypy.lib import profiler
 
-### Tools is needed for CRABServer startup: it sets up the tools attributes
-import WMCore.REST.Tools
+# Tools is needed for CRABServer startup: it sets up the tools attributes
 from WMCore.Configuration import ConfigSection, loadConfigurationFile
+from WMCore.WMLogging import getTimeRotatingLogger
 from Utils.Utilities import lowerCmsHeaders
 from Utils.PythonVersion import PY2
 
-#: Terminal controls to switch to "OK" status message colour.
+# Terminal controls to switch to "OK" status message colour.
 COLOR_OK = "\033[0;32m"
 
-#: Terminal controls to switch to "warning" status message colour.
+# Terminal controls to switch to "warning" status message colour.
 COLOR_WARN = "\033[0;31m"
 
-#: Terminal controls to restore normal message colour.
+# Terminal controls to restore normal message colour.
 COLOR_NORMAL = "\033[0;39m"
 
 
@@ -89,7 +93,8 @@ class ProfiledApp(Application):
         self.profiler = profiler.ProfileAggregator(path)
 
     def __call__(self, env, handler):
-        def gather(): return Application.__call__(self, env, handler)
+        def gather():
+            return Application.__call__(self, env, handler)
 
         return self.profiler.run(gather)
 
@@ -221,7 +226,7 @@ class RESTMain(object):
         # as we previously used sys.setcheckinterval
         interval = getattr(self.srvconfig, 'sys_check_interval', 10000)
         # set check interval in seconds for sys.setswitchinterval
-        sys.setswitchinterval(interval/1000)
+        sys.setswitchinterval(interval / 1000)
         self.silent = getattr(self.srvconfig, 'silent', False)
 
         # Apply any override options from app config file.
@@ -468,7 +473,8 @@ class RESTDaemon(RESTMain):
             cherrypy.log("WATCHDOG: starting server daemon (pid %d)" % os.getpid())
             while True:
                 serverpid = os.fork()
-                if not serverpid: break
+                if not serverpid:
+                    break
                 signal.signal(signal.SIGINT, signal.SIG_IGN)
                 signal.signal(signal.SIGTERM, signal.SIG_IGN)
                 signal.signal(signal.SIGQUIT, signal.SIG_IGN)
@@ -568,17 +574,17 @@ def main():
         running, pid = server.daemon_pid()
         if running:
             if not opts.quiet:
-                print("%s is %sRUNNING%s, PID %d" \
+                print("%s is %sRUNNING%s, PID %d"
                       % (app, COLOR_OK, COLOR_NORMAL, pid))
             sys.exit(0)
         elif pid != None:
             if not opts.quiet:
-                print("%s is %sNOT RUNNING%s, stale PID %d" \
+                print("%s is %sNOT RUNNING%s, stale PID %d"
                       % (app, COLOR_WARN, COLOR_NORMAL, pid))
             sys.exit(2)
         else:
             if not opts.quiet:
-                print("%s is %sNOT RUNNING%s" \
+                print("%s is %sNOT RUNNING%s"
                       % (app, COLOR_WARN, COLOR_NORMAL))
             sys.exit(1)
 
@@ -618,6 +624,9 @@ def main():
                 server.logfile = re.split(r"\s+", opts.logfile[1:])
             else:
                 server.logfile = opts.logfile
+
+                # setup rotating log
+                getTimeRotatingLogger(None, server.logfile)
 
         # Actually start the daemon now.
         server.start_daemon()
