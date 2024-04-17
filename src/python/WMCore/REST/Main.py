@@ -7,8 +7,8 @@ Manages a web server application. Loads configuration and all views, starting
 up an appropriately configured CherryPy instance. Views are loaded dynamically
 and can be turned on/off via configuration file.
 
-If LOG-FILE does not contain `rotatelogs` and does not contain a date in
-%Y%m%d format, a date will be added before the file extension.
+If LOG-FILE does not contain a date in %Y%m%d format,
+a date will be added before the file extension.
 """
 
 from __future__ import print_function
@@ -17,6 +17,7 @@ from future.utils import viewitems
 from future import standard_library
 standard_library.install_aliases()
 
+from datetime import date
 import errno
 import logging
 import os
@@ -40,6 +41,8 @@ from cherrypy._cplogging import LogManager
 from cherrypy.lib import profiler
 
 # Tools is needed for CRABServer startup: it sets up the tools attributes
+import WMCore.REST.Tools
+
 from WMCore.Configuration import ConfigSection, loadConfigurationFile
 from WMCore.WMLogging import getTimeRotatingLogger
 from Utils.Utilities import lowerCmsHeaders
@@ -316,7 +319,8 @@ class RESTDaemon(RESTMain):
         :arg str statedir: server state directory."""
         RESTMain.__init__(self, config, statedir)
         self.pidfile = "%s/%s.pid" % (self.statedir, self.appname)
-        self.logfile = ["rotatelogs", "%s/%s-%%Y%%m%%d.log" % (self.statedir, self.appname), "86400"]
+        todayStr = date.today().strftime("%Y%m%d")
+        self.logfile = f"{self.statedir}/{self.appname}-{todayStr}.log"
 
     def daemon_pid(self):
         """Check if there is a daemon running, and if so return its pid.
@@ -574,18 +578,15 @@ def main():
         running, pid = server.daemon_pid()
         if running:
             if not opts.quiet:
-                print("%s is %sRUNNING%s, PID %d"
-                      % (app, COLOR_OK, COLOR_NORMAL, pid))
+                print(f"{app} is {COLOR_OK}RUNNING{COLOR_NORMAL}, PID {pid}")
             sys.exit(0)
         elif pid != None:
             if not opts.quiet:
-                print("%s is %sNOT RUNNING%s, stale PID %d"
-                      % (app, COLOR_WARN, COLOR_NORMAL, pid))
+                print(f"{app} is {COLOR_WARN}NOT RUNNING{COLOR_NORMAL}, PID {pid}")
             sys.exit(2)
         else:
             if not opts.quiet:
-                print("%s is %sNOT RUNNING%s"
-                      % (app, COLOR_WARN, COLOR_NORMAL))
+                print(f"{app} is {COLOR_WARN}NOT RUNNING{COLOR_NORMAL}")
             sys.exit(1)
 
     elif opts.kill:
@@ -620,13 +621,10 @@ def main():
         # the logfile option to a list if it looks like a pipe request, i.e.
         # starts with "|", such as "|rotatelogs foo/bar-%Y%m%d.log".
         if opts.logfile:
-            if opts.logfile.startswith("|"):
-                server.logfile = re.split(r"\s+", opts.logfile[1:])
-            else:
-                server.logfile = opts.logfile
+            server.logfile = opts.logfile
 
-                # setup rotating log
-                getTimeRotatingLogger(None, server.logfile)
+            # setup rotating log
+            getTimeRotatingLogger(None, server.logfile)
 
         # Actually start the daemon now.
         server.start_daemon()
