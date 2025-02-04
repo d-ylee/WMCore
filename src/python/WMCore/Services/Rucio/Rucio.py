@@ -10,9 +10,11 @@ from __future__ import division, print_function, absolute_import
 from builtins import str, object
 from future.utils import viewitems, viewvalues
 
+from copy import deepcopy
 import json
 import logging
-from copy import deepcopy
+import warnings
+
 from rucio.client import Client
 from rucio.common.exception import (AccountNotFound, DataIdentifierNotFound, AccessDenied, DuplicateRule,
                                     DataIdentifierAlreadyExists, DuplicateContent, InvalidRSEExpression,
@@ -764,7 +766,7 @@ class Rucio(object):
             return matchingRSEs
         return dropTapeRSEs(matchingRSEs)
 
-    def pickRSE(self, rseExpression='rse_type=TAPE\cms_type=test', rseAttribute='ddm_quota', minNeeded=0):
+    def pickRSE(self, rseExpression='rse_type=TAPE\cms_type=test', rseAttribute='dm_weight', minNeeded=0):
         """
         _pickRSE_
 
@@ -776,6 +778,9 @@ class Rucio(object):
 
         Returns: A tuple of the chosen RSE and if the chosen RSE requires approval to write (rule property)
         """
+        if rseAttribute == "ddm_quota":
+            warnings.warn("ddm_quota is deprecated, use dm_weight", DeprecationWarning)
+            rseAttribute = "dm_weight"
         matchingRSEs = self.evaluateRSEExpression(rseExpression)
         rsesWithApproval = []
         rsesWeight = []
@@ -790,10 +795,10 @@ class Rucio(object):
             else:
                 attrValue = 1
             requiresApproval = rseAttrs.get('requires_approval', False)
-            if rseAttribute == "ddm_quota" and attrValue > minNeeded:
+            if rseAttribute == "dm_weight" and attrValue > minNeeded:
                 rsesWithApproval.append((rse, requiresApproval))
                 rsesWeight.append(attrValue)
-            elif rseAttribute != "ddm_quota":  # e.g. dm_weight
+            elif rseAttribute != "dm_weight":  # e.g. dm_weight
                 rsesWithApproval.append((rse, requiresApproval))
                 rsesWeight.append(attrValue)
 
