@@ -765,7 +765,7 @@ class Rucio(object):
             return matchingRSEs
         return dropTapeRSEs(matchingRSEs)
 
-    def pickRSE(self, rseExpression='rse_type=TAPE\cms_type=test', rseAttribute='dm_weight', minNeeded=0):
+    def pickRSE(self, rseExpression='rse_type=TAPE\cms_type=test', rseAttribute='dm_weight'):
         """
         _pickRSE_
 
@@ -773,7 +773,6 @@ class Rucio(object):
         The attribute should correlate to space available.
         :param rseExpression: Rucio RSE expression to pick RSEs (defaults to production Tape RSEs)
         :param rseAttribute: The RSE attribute to use as a weight. Must be a number
-        :param minNeeded: If the RSE attribute is less than this number, the RSE will not be considered.
 
         Returns: A tuple of the chosen RSE and if the chosen RSE requires approval to write (rule property)
         """
