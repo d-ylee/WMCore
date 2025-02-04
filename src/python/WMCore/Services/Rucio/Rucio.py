@@ -13,7 +13,6 @@ from future.utils import viewitems, viewvalues
 from copy import deepcopy
 import json
 import logging
-import warnings
 
 from rucio.client import Client
 from rucio.common.exception import (AccountNotFound, DataIdentifierNotFound, AccessDenied, DuplicateRule,
@@ -778,9 +777,6 @@ class Rucio(object):
 
         Returns: A tuple of the chosen RSE and if the chosen RSE requires approval to write (rule property)
         """
-        if rseAttribute == "ddm_quota":
-            warnings.warn("ddm_quota is deprecated, use dm_weight", DeprecationWarning)
-            rseAttribute = "dm_weight"
         matchingRSEs = self.evaluateRSEExpression(rseExpression)
         rsesWithApproval = []
         rsesWeight = []
@@ -795,12 +791,8 @@ class Rucio(object):
             else:
                 attrValue = 1
             requiresApproval = rseAttrs.get('requires_approval', False)
-            if rseAttribute == "dm_weight" and attrValue > minNeeded:
-                rsesWithApproval.append((rse, requiresApproval))
-                rsesWeight.append(attrValue)
-            elif rseAttribute != "dm_weight":  # e.g. dm_weight
-                rsesWithApproval.append((rse, requiresApproval))
-                rsesWeight.append(attrValue)
+            rsesWithApproval.append((rse, requiresApproval))
+            rsesWeight.append(attrValue)
 
         return weightedChoice(rsesWithApproval, rsesWeight)
 
